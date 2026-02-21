@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
   # Online Canteen Food Ordering
 
@@ -9,3 +10,6 @@
 
   Run `npm run dev` to start the development server.
   
+=======
+# campus-canteen
+>>>>>>> f25f7a9141b4a44e9b118973b49c232b9dbe2b87
