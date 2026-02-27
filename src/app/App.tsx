@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FoodItem } from "./components/FoodCard";
 import { Login } from "./components/Login";
 import { VerificationCode } from "./components/VerificationCode";
@@ -173,7 +173,25 @@ export default function App() {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("customer");
   const [userEmail, setUserEmail] = useState("");
-  const [foodItems, setFoodItems] = useState<FoodItem[]>(INITIAL_FOOD_ITEMS);
+  const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
+
+  useEffect(() => {
+    fetchFoodItems();
+  }, [authStep]);
+
+  const fetchFoodItems = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/food');
+      const data = await res.json();
+      if (res.ok) {
+        const mappedData = data.map((item: any) => ({ ...item, id: item._id }));
+        setFoodItems(mappedData.length > 0 ? mappedData : INITIAL_FOOD_ITEMS); // Fallback to initial if db empty
+      }
+    } catch (error) {
+      console.error('Error fetching food items:', error);
+      setFoodItems(INITIAL_FOOD_ITEMS); // Fallback on error
+    }
+  };
 
   const handleLogin = (email: string, password: string, role: "customer" | "restaurant") => {
     setUserEmail(email);
@@ -201,22 +219,74 @@ export default function App() {
     setViewMode("customer");
   };
 
-  const handleAddItem = (item: Omit<FoodItem, "id">) => {
-    const newItem: FoodItem = {
-      ...item,
-      id: Date.now().toString(),
-    };
-    setFoodItems((prev) => [...prev, newItem]);
+  const handleAddItem = async (item: Omit<FoodItem, "id">) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/food', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(item),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const newItem: FoodItem = {
+          ...data,
+          id: data._id,
+        };
+        setFoodItems((prev) => [...prev, newItem]);
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleUpdateItem = (id: string, updates: Partial<FoodItem>) => {
-    setFoodItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
+  const handleUpdateItem = async (id: string, updates: Partial<FoodItem>) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/api/food/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFoodItems((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, ...data, id: data._id } : item))
+        );
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setFoodItems((prev) => prev.filter((item) => item.id !== id));
+  const handleDeleteItem = async (id: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`http://localhost:5000/api/food/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        setFoodItems((prev) => prev.filter((item) => item.id !== id));
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   // Show login screen

@@ -7,7 +7,7 @@ interface AddressMapProps {
 }
 
 // Demo API key - Replace with your actual Google Maps API key
-const GOOGLE_MAPS_API_KEY = "YOUR_GOOGLE_MAPS_API_KEY";
+const GOOGLE_MAPS_API_KEY = "AIzaSyA8UNeTTQY7c0xwRApijp8yr0JiUe4RpeE";
 
 // Default location: Campus area (example coordinates for a university campus in India)
 const DEFAULT_CENTER = { lat: 28.6139, lng: 77.2090 }; // Delhi, India
@@ -25,12 +25,13 @@ export function AddressMap({ onLocationSelect }: AddressMapProps) {
   const [markerPosition, setMarkerPosition] = useState(DEFAULT_CENTER);
 
   const handleMapClick = useCallback(
-    (event: google.maps.MapMouseEvent) => {
-      if (event.latLng) {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
+    (event: any) => { // any is used intentionally here because MapMouseEvent from vis.gl has conflicting types in older versions
+      const latLng = event.detail?.latLng || event.latLng;
+      if (latLng) {
+        const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
+        const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
         setMarkerPosition({ lat, lng });
-        
+
         // Use reverse geocoding to get address (simplified)
         const address = `Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
         onLocationSelect?.(address, lat, lng);
@@ -64,70 +65,7 @@ export function AddressMap({ onLocationSelect }: AddressMapProps) {
     }
   };
 
-  // If no API key, show placeholder with quick location selection
-  if (GOOGLE_MAPS_API_KEY === "YOUR_GOOGLE_MAPS_API_KEY") {
-    return (
-      <div className="space-y-4">
-        {/* Map Placeholder */}
-        <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center p-6">
-              <MapPin size={48} className="mx-auto text-orange-400 mb-3" />
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>Interactive Map Preview</strong>
-              </p>
-              <p className="text-xs text-gray-500">
-                Add your Google Maps API key to enable map functionality
-              </p>
-            </div>
-          </div>
-          {/* Simulated map background */}
-          <div className="absolute inset-0 opacity-10">
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0,0 L100,0 L100,100 L0,100 Z" fill="#e5e7eb" />
-              <path d="M20,30 Q30,20 40,30 T60,30" stroke="#9ca3af" strokeWidth="0.5" fill="none" />
-              <path d="M10,60 Q20,50 30,60 T50,60" stroke="#9ca3af" strokeWidth="0.5" fill="none" />
-              <circle cx="50" cy="50" r="2" fill="#f97316" />
-            </svg>
-          </div>
-        </div>
 
-        {/* Quick Location Buttons */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">Quick Select Location</label>
-            <button
-              onClick={handleGetCurrentLocation}
-              className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 font-medium"
-            >
-              <Navigation size={14} />
-              Use Current Location
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {CAMPUS_LOCATIONS.map((location) => (
-              <button
-                key={location.name}
-                onClick={() => handleQuickLocationSelect(location)}
-                className="flex items-center gap-2 p-2 text-sm bg-white border border-gray-200 rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-colors text-left"
-              >
-                <MapPin size={16} className="text-orange-500 flex-shrink-0" />
-                <span className="text-gray-700">{location.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-700">
-            <strong>Note:</strong> To enable full map functionality, add your Google Maps API key in{" "}
-            <code className="bg-blue-100 px-1 rounded">AddressMap.tsx</code>
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // Full map implementation with API key
   return (

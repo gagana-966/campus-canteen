@@ -87,12 +87,46 @@ export function CustomerView({ foodItems, userEmail, onLogout }: CustomerViewPro
     setIsOrderModalOpen(true);
   };
 
-  const handleOrderConfirm = (orderDetails: { name: string; phone: string; notes: string }) => {
-    const newOrderNumber = Math.floor(10000 + Math.random() * 90000).toString();
-    setOrderNumber(newOrderNumber);
-    setIsOrderModalOpen(false);
-    setIsSuccessModalOpen(true);
-    setCart([]);
+  const handleOrderConfirm = async (orderDetails: { name: string; phone: string; notes: string }) => {
+    try {
+      const token = localStorage.getItem('token');
+      const orderData = {
+        name: orderDetails.name,
+        phone: orderDetails.phone,
+        notes: orderDetails.notes,
+        items: cart.map(c => ({
+          name: c.item.name,
+          qty: c.quantity,
+          image: c.item.image,
+          price: c.item.price,
+          foodItem: c.item.id
+        })),
+        totalAmount
+      };
+
+      const res = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        // use last 6 chars of id as order number or custom
+        setOrderNumber(data._id ? data._id.substring(data._id.length - 6) : Math.floor(10000 + Math.random() * 90000).toString());
+        setIsOrderModalOpen(false);
+        setIsSuccessModalOpen(true);
+        setCart([]);
+      } else {
+        alert(`Failed to place order: ${data.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error placing order');
+    }
   };
 
   const totalItems = cart.reduce((sum, { quantity }) => sum + quantity, 0);
@@ -159,11 +193,10 @@ export function CustomerView({ foodItems, userEmail, onLogout }: CustomerViewPro
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                selectedCategory === category
+              className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category
                   ? "bg-orange-500 text-white"
                   : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+                }`}
             >
               {category}
             </button>
